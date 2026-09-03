@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Activities{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1>Activities</h1>
+    
+    <!-- Display Messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+    
+    <!-- Add New Activity Form -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Add New Activity</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                {% csrf_token %}
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ form.customer }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.lead }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ form.type }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.subject }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ form.activity_date }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.created_by }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        {{ form.description }}
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary mt-3">Add Activity</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Activities List Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5>Activities List</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Customer</th>
+                            <th>Lead</th>
+                            <th>Type</th>
+                            <th>Subject</th>
+                            <th>Activity Date</th>
+                            <th>Created By</th>
+                            <th>Created At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for activity in activities %}
+                            <tr>
+                                <td>{{ activity.customer.customer_name }}</td>
+                                <td>{{ activity.lead.name }}</td>
+                                <td>
+                                    {% if activity.type == 'Call' %}
+                                        <span class="badge bg-info">{{ activity.type }}</span>
+                                    {% elif activity.type == 'Email' %}
+                                        <span class="badge bg-primary">{{ activity.type }}</span>
+                                    {% elif activity.type == 'Meeting' %}
+                                        <span class="badge bg-success">{{ activity.type }}</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ activity.type }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ activity.subject }}</td>
+                                <td>{{ activity.activity_date|date:"M d, Y H:i" }}</td>
+                                <td>{{ activity.created_by.user_name|default:"Unknown" }}</td>
+                                <td>{{ activity.ctreated_at|date:"M d, Y" }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center">No activities found</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

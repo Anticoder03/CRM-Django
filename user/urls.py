@@ -22,5 +22,11 @@ from . import views
 
 urlpatterns = [
     path("", views.user_home, name="user_home"),
+    path("customer/", views.customer_list, name="customer_list"),
+    path("lead/", views.lead_list, name="lead_list"),
+    path("opportunity/", views.opportunity_list, name="opportunity_list"),
+    path("activity/", views.activity_list, name="activity_list"),
+    path("task/", views.task_list, name="task_list"),
+    
 ]
 

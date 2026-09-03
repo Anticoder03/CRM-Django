@@ -9,6 +9,9 @@ class User(models.Model):
     password = models.CharField(max_length=100)
     email = models.EmailField()
     created_at = models.DateTimeField(auto_now_add=True)
+    def __str__(self):
+        return self.user_name
+    
     
 class Customer(models.Model):
     Status_Choices = [
@@ -27,6 +30,9 @@ class Customer(models.Model):
     notes = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return self.customer_name
     
 class Lead(models.Model):
     Source_Choices = [
@@ -54,6 +60,9 @@ class Lead(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
+    def __str__(self):
+        return self.name
+    
 class Opportunity(models.Model):
     Stage_Choices = [
         # Prospecting / Qualified / Proposal / Negotiation / Won / Lost
@@ -76,6 +85,9 @@ class Opportunity(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
+    def __str__(self):
+        return self.title
+    
     
 class Activity(models.Model):
     Type_Choice = [
@@ -94,6 +106,8 @@ class Activity(models.Model):
     activity_date = models.DateTimeField()
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     ctreated_at = models.DateTimeField(auto_now_add=True)
+    def __str__(self):
+        return self.subject
     
 class Task(models.Model):
     Priority_Choices = [
@@ -115,6 +129,9 @@ class Task(models.Model):
     description = models.TextField(blank=True, null=True)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return self.title
     
     
     

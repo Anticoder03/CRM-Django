@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Home - CRM{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1>Welcome to CRM Dashboard</h1>
+    <p class="lead">This is your Customer Relationship Management system. Use the navigation above to manage your customers, leads, opportunities, activities, and tasks.</p>
+    
+    <div class="row mt-5">
+        <div class="col-md-4 mb-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Customers</h5>
+                    <p class="card-text">Manage your customer information</p>
+                    <a href="{% url 'customer_list' %}" class="btn btn-primary">Go to Customers</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Leads</h5>
+                    <p class="card-text">Track and manage leads</p>
+                    <a href="{% url 'lead_list' %}" class="btn btn-primary">Go to Leads</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Opportunities</h5>
+                    <p class="card-text">Monitor sales opportunities</p>
+                    <a href="{% url 'opportunity_list' %}" class="btn btn-primary">Go to Opportunities</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Activities</h5>
+                    <p class="card-text">Log and track activities</p>
+                    <a href="{% url 'activity_list' %}" class="btn btn-primary">Go to Activities</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Tasks</h5>
+                    <p class="card-text">Create and manage tasks</p>
+                    <a href="{% url 'task_list' %}" class="btn btn-primary">Go to Tasks</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

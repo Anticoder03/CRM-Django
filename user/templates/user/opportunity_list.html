@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Opportunities{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1>Opportunities</h1>
+    
+    <!-- Display Messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+    
+    <!-- Add New Opportunity Form -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Add New Opportunity</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                {% csrf_token %}
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ form.title }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.customer }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ form.amount }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.stage }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ form.probability }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.expected_close_date }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        {{ form.notes }}
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary mt-3">Add Opportunity</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Opportunities List Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5>Opportunities List</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Customer</th>
+                            <th>Amount</th>
+                            <th>Stage</th>
+                            <th>Probability</th>
+                            <th>Expected Close Date</th>
+                            <th>Created At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for opportunity in opportunities %}
+                            <tr>
+                                <td>{{ opportunity.title }}</td>
+                                <td>{{ opportunity.customer.customer_name }}</td>
+                                <td>${{ opportunity.amount }}</td>
+                                <td>
+                                    {% if opportunity.stage == 'Won' %}
+                                        <span class="badge bg-success">{{ opportunity.stage }}</span>
+                                    {% elif opportunity.stage == 'Lost' %}
+                                        <span class="badge bg-danger">{{ opportunity.stage }}</span>
+                                    {% else %}
+                                        <span class="badge bg-info">{{ opportunity.stage }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ opportunity.probability }}%</td>
+                                <td>{{ opportunity.expected_close_date|date:"M d, Y" }}</td>
+                                <td>{{ opportunity.created_at|date:"M d, Y" }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center">No opportunities found</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
