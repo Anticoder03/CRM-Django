@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} - CRM Pro{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_subtitle %}Update the record details{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl">
+    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-gray-900">{{ title }}</h3>
+            <a href="{% url cancel_url %}" class="text-sm text-indigo-600 hover:text-indigo-700 font-medium">← Back to list</a>
+        </div>
+        <form method="POST" class="p-6">
+            {% csrf_token %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% for field in form %}
+                <div class="{% if field.field.widget.input_type == 'textarea' or field.field.widget.input_type == 'date' and not field.label|slice:':5' %} {% endif %} {% if forloop.counter > 6 %}md:col-span-2{% endif %}">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">{{ field.label }}</label>
+                    {% if field.field.widget.input_type == 'checkbox' %}
+                        <div class="flex items-center">
+                            {{ field }}
+                            <span class="ml-2 text-sm text-gray-600">{{ field.help_text }}</span>
+                        </div>
+                    {% else %}
+                        {{ field }}
+                    {% endif %}
+                    {% if field.errors %}
+                        <p class="text-xs text-red-500 mt-1">{{ field.errors|join:", " }}</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            <div class="mt-6 flex items-center gap-3">
+                <button type="submit" class="bg-indigo-600 text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm">
+                    Save Changes
+                </button>
+                <a href="{% url cancel_url %}" class="px-5 py-2 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

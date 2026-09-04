@@ -25,7 +25,9 @@ SECRET_KEY = "django-insecure-ldh$6+_^*^qh577wu4e75w8cxavw3r9hx^zqcnzjf##9ezca4o
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
+
+LOGIN_URL = "login"
 
 
 # Application definition
@@ -118,11 +120,12 @@ USE_TZ = True
 STATIC_URL = "static/"
 
 
-# Email
-# https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
-
-MAILERS = {
-    "default": {
-        "BACKEND": "django.core.mail.backends.console.EmailBackend",
-    },
-}
+# Email - Console backend logs emails to terminal (development)
+# For production, switch to SMTP backend
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = "ap5381545@gmail.com"
+EMAIL_HOST_PASSWORD = "bawf enjm kxyx bdgs"
+DEFAULT_FROM_EMAIL = "ap5381545@gmail.com"

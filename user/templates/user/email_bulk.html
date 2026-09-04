@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Bulk Email - CRM Pro{% endblock %}
+{% block page_title %}Bulk Email Marketing{% endblock %}
+{% block page_subtitle %}Send an email to multiple customers at once{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl">
+    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-gray-900">Send Bulk Email</h3>
+            <a href="{% url 'email_log' %}" class="text-sm text-indigo-600 hover:text-indigo-700 font-medium">View Email Log →</a>
+        </div>
+        <form method="POST" class="p-6">
+            {% csrf_token %}
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">{{ form.recipients.label }}</label>
+                    {{ form.recipients }}
+                    <p class="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple customers.</p>
+                    {% if form.recipients.errors %}<p class="text-xs text-red-500 mt-1">{{ form.recipients.errors }}</p>{% endif %}
+                </div>
+                <div class="flex items-center gap-3">
+                    {{ form.include_leads }}
+                    <label class="text-sm font-medium text-gray-700">{{ form.include_leads.label }}</label>
+                    <span class="text-xs text-gray-500">(sends to all current leads too)</span>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">{{ form.subject.label }}</label>
+                    {{ form.subject }}
+                    {% if form.subject.errors %}<p class="text-xs text-red-500 mt-1">{{ form.subject.errors }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">{{ form.message.label }}</label>
+                    {{ form.message }}
+                    {% if form.message.errors %}<p class="text-xs text-red-500 mt-1">{{ form.message.errors }}</p>{% endif %}
+                </div>
+                <div class="flex items-center justify-between pt-2">
+                    <a href="{% url 'email_log' %}" class="px-5 py-2 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">
+                        View Email Log
+                    </a>
+                    <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm">
+                        Send Bulk Email
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

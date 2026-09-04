@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Send Email - CRM Pro{% endblock %}
+{% block page_title %}Send Email{% endblock %}
+{% block page_subtitle %}Send an email to a single customer{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl">
+    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-sm font-semibold text-gray-900">Compose Email</h3>
+        </div>
+        <form method="POST" class="p-6">
+            {% csrf_token %}
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">{{ form.customer.label }}</label>
+                    {{ form.customer }}
+                    {% if form.customer.errors %}<p class="text-xs text-red-500 mt-1">{{ form.customer.errors }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">{{ form.subject.label }}</label>
+                    {{ form.subject }}
+                    {% if form.subject.errors %}<p class="text-xs text-red-500 mt-1">{{ form.subject.errors }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">{{ form.message.label }}</label>
+                    {{ form.message }}
+                    {% if form.message.errors %}<p class="text-xs text-red-500 mt-1">{{ form.message.errors }}</p>{% endif %}
+                </div>
+                <div class="flex items-center justify-between pt-2">
+                    <a href="{% url 'email_log' %}" class="px-5 py-2 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">
+                        View Email Log
+                    </a>
+                    <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm">
+                        Send Email
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
