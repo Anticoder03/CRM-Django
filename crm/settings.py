@@ -120,12 +120,11 @@ USE_TZ = True
 STATIC_URL = "static/"
 
 
-# Email - Console backend logs emails to terminal (development)
-# For production, switch to SMTP backend
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+# Email - SMTP backend sends real emails using the credentials below
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = "<YOUR_EMAIL_ADDRESS>"
-EMAIL_HOST_PASSWORD = "<YOUR_APP_PASSWORD>"
+EMAIL_HOST_PASSWORD = "<YOUR_EMAIL_PASSWORD>"
 DEFAULT_FROM_EMAIL = "<YOUR_EMAIL_ADDRESS>"
