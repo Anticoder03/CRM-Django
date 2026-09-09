@@ -26,6 +26,48 @@ def _require_login(request):
         return None
 
 
+def _visible_customers(user):
+    if user.is_admin:
+        return Customer.objects.all()
+    return Customer.objects.filter(assign_to=user)
+
+
+def _visible_leads(user):
+    if user.is_admin:
+        return Lead.objects.all()
+    return Lead.objects.filter(assign_to=user)
+
+
+def _visible_opportunities(user):
+    if user.is_admin:
+        return Opportunity.objects.all()
+    return Opportunity.objects.filter(assign_to=user)
+
+
+def _visible_activities(user):
+    if user.is_admin:
+        return Activity.objects.all()
+    return Activity.objects.filter(assign_to=user)
+
+
+def _visible_tasks(user):
+    if user.is_admin:
+        return Task.objects.all()
+    return Task.objects.filter(assign_to=user)
+
+
+def _can_access(user, record):
+    if user.is_admin:
+        return True
+    assignee = getattr(record, "assign_to", None)
+    return assignee is not None and assignee.id == user.id
+
+
+def _deny(request, url_name):
+    messages.error(request, "You do not have permission to access this record.")
+    return redirect(url_name)
+
+
 @require_http_methods(["GET", "POST"])
 def login_view(request):
     if request.method == "POST":
@@ -99,39 +141,48 @@ def user_home(request):
     if not current_user:
         return redirect("login")
 
-    total_customers = Customer.objects.count()
-    total_leads = Lead.objects.count()
-    total_opportunities = Opportunity.objects.count()
-    won_opportunities = Opportunity.objects.filter(stage="Won").count()
-    lost_opportunities = Opportunity.objects.filter(stage="Lost").count()
-    total_activities = Activity.objects.count()
-    total_tasks = Task.objects.count()
-    pending_tasks = Task.objects.filter(status="Pending").count()
-    completed_tasks = Task.objects.filter(status="Completed").count()
+    customers = _visible_customers(current_user)
+    leads = _visible_leads(current_user)
+    opportunities = _visible_opportunities(current_user)
+    activities = _visible_activities(current_user)
+    tasks = _visible_tasks(current_user)
 
-    new_leads = Lead.objects.filter(status="New").count()
-    contacted_leads = Lead.objects.filter(status="Contacted").count()
-    qualified_leads = Lead.objects.filter(status="Qualified").count()
-    converted_leads = Lead.objects.filter(status="Converted").count()
-    lost_leads = Lead.objects.filter(status="Lost").count()
+    total_customers = customers.count()
+    total_leads = leads.count()
+    total_opportunities = opportunities.count()
+    won_opportunities = opportunities.filter(stage="Won").count()
+    lost_opportunities = opportunities.filter(stage="Lost").count()
+    total_activities = activities.count()
+    total_tasks = tasks.count()
+    pending_tasks = tasks.filter(status="Pending").count()
+    completed_tasks = tasks.filter(status="Completed").count()
+
+    new_leads = leads.filter(status="New").count()
+    contacted_leads = leads.filter(status="Contacted").count()
+    qualified_leads = leads.filter(status="Qualified").count()
+    converted_leads = leads.filter(status="Converted").count()
+    lost_leads = leads.filter(status="Lost").count()
 
     total_revenue = (
-        Opportunity.objects.filter(stage="Won").values_list("amount", flat=True)
+        opportunities.filter(stage="Won").values_list("amount", flat=True)
     )
     revenue_sum = sum(float(a) for a in total_revenue)
 
     pipeline_value = (
-        Opportunity.objects.exclude(stage__in=["Won", "Lost"]).values_list(
+        opportunities.exclude(stage__in=["Won", "Lost"]).values_list(
             "amount", flat=True
         )
     )
     pipeline_sum = sum(float(a) for a in pipeline_value)
 
-    recent_leads = Lead.objects.order_by("-created_at")[:5]
-    recent_customers = Customer.objects.order_by("-created_at")[:5]
-    recent_activities = Activity.objects.order_by("-activity_date")[:5]
-    upcoming_tasks = Task.objects.filter(status="Pending").order_by("due_date")[:5]
-    email_count = EmailLog.objects.count()
+    recent_leads = leads.order_by("-created_at")[:5]
+    recent_customers = customers.order_by("-created_at")[:5]
+    recent_activities = activities.order_by("-activity_date")[:5]
+    upcoming_tasks = tasks.filter(status="Pending").order_by("due_date")[:5]
+    email_logs = EmailLog.objects.all()
+    if not current_user.is_admin:
+        email_logs = email_logs.filter(sent_by=current_user)
+    email_count = email_logs.count()
 
     lead_status_data = {
         "New": new_leads,
@@ -143,7 +194,7 @@ def user_home(request):
 
     stage_data = {}
     for stage, _ in Opportunity.Stage_Choices:
-        stage_data[stage] = Opportunity.objects.filter(stage=stage).count()
+        stage_data[stage] = opportunities.filter(stage=stage).count()
 
     context = {
         "current_user": current_user,
@@ -182,16 +233,19 @@ def customer_list(request):
         return redirect("login")
 
     if request.method == "POST":
-        form = CustomerForm(request.POST)
+        form = CustomerForm(request.POST, user=current_user)
         if form.is_valid():
-            form.save()
+            customer = form.save(commit=False)
+            if not current_user.is_admin:
+                customer.assign_to = current_user
+            customer.save()
             messages.success(request, "Customer created successfully!")
             return redirect("customer_list")
     else:
-        form = CustomerForm()
+        form = CustomerForm(user=current_user)
 
     search = request.GET.get("search", "")
-    customers = Customer.objects.all()
+    customers = _visible_customers(current_user)
     if search:
         customers = customers.filter(
             models.Q(customer_name__icontains=search)
@@ -215,14 +269,17 @@ def customer_update(request, pk):
         return redirect("login")
 
     customer = get_object_or_404(Customer, pk=pk)
+    if not _can_access(current_user, customer):
+        return _deny(request, "customer_list")
+
     if request.method == "POST":
-        form = CustomerForm(request.POST, instance=customer)
+        form = CustomerForm(request.POST, instance=customer, user=current_user)
         if form.is_valid():
             form.save()
             messages.success(request, "Customer updated successfully!")
             return redirect("customer_list")
     else:
-        form = CustomerForm(instance=customer)
+        form = CustomerForm(instance=customer, user=current_user)
 
     context = {
         "form": form,
@@ -240,6 +297,9 @@ def customer_delete(request, pk):
         return redirect("login")
 
     customer = get_object_or_404(Customer, pk=pk)
+    if not _can_access(current_user, customer):
+        return _deny(request, "customer_list")
+
     name = customer.customer_name
     customer.delete()
     messages.success(request, f"Customer '{name}' deleted successfully!")
@@ -254,15 +314,18 @@ def lead_list(request):
         return redirect("login")
 
     if request.method == "POST":
-        form = LeadForm(request.POST)
+        form = LeadForm(request.POST, user=current_user)
         if form.is_valid():
-            form.save()
+            lead = form.save(commit=False)
+            if not current_user.is_admin:
+                lead.assign_to = current_user
+            lead.save()
             messages.success(request, "Lead created successfully!")
             return redirect("lead_list")
     else:
-        form = LeadForm()
+        form = LeadForm(user=current_user)
 
-    leads = Lead.objects.all()
+    leads = _visible_leads(current_user)
     context = {
         "leads": leads,
         "form": form,
@@ -277,14 +340,17 @@ def lead_update(request, pk):
         return redirect("login")
 
     lead = get_object_or_404(Lead, pk=pk)
+    if not _can_access(current_user, lead):
+        return _deny(request, "lead_list")
+
     if request.method == "POST":
-        form = LeadForm(request.POST, instance=lead)
+        form = LeadForm(request.POST, instance=lead, user=current_user)
         if form.is_valid():
             form.save()
             messages.success(request, "Lead updated successfully!")
             return redirect("lead_list")
     else:
-        form = LeadForm(instance=lead)
+        form = LeadForm(instance=lead, user=current_user)
 
     context = {
         "form": form,
@@ -302,6 +368,9 @@ def lead_delete(request, pk):
         return redirect("login")
 
     lead = get_object_or_404(Lead, pk=pk)
+    if not _can_access(current_user, lead):
+        return _deny(request, "lead_list")
+
     name = lead.name
     lead.delete()
     messages.success(request, f"Lead '{name}' deleted successfully!")
@@ -316,15 +385,18 @@ def opportunity_list(request):
         return redirect("login")
 
     if request.method == "POST":
-        form = OpportunityForm(request.POST)
+        form = OpportunityForm(request.POST, user=current_user)
         if form.is_valid():
-            form.save()
+            opportunity = form.save(commit=False)
+            if not current_user.is_admin:
+                opportunity.assign_to = current_user
+            opportunity.save()
             messages.success(request, "Opportunity created successfully!")
             return redirect("opportunity_list")
     else:
-        form = OpportunityForm()
+        form = OpportunityForm(user=current_user)
 
-    opportunities = Opportunity.objects.all()
+    opportunities = _visible_opportunities(current_user)
     context = {
         "opportunities": opportunities,
         "form": form,
@@ -339,14 +411,17 @@ def opportunity_update(request, pk):
         return redirect("login")
 
     opportunity = get_object_or_404(Opportunity, pk=pk)
+    if not _can_access(current_user, opportunity):
+        return _deny(request, "opportunity_list")
+
     if request.method == "POST":
-        form = OpportunityForm(request.POST, instance=opportunity)
+        form = OpportunityForm(request.POST, instance=opportunity, user=current_user)
         if form.is_valid():
             form.save()
             messages.success(request, "Opportunity updated successfully!")
             return redirect("opportunity_list")
     else:
-        form = OpportunityForm(instance=opportunity)
+        form = OpportunityForm(instance=opportunity, user=current_user)
 
     context = {
         "form": form,
@@ -364,6 +439,9 @@ def opportunity_delete(request, pk):
         return redirect("login")
 
     opportunity = get_object_or_404(Opportunity, pk=pk)
+    if not _can_access(current_user, opportunity):
+        return _deny(request, "opportunity_list")
+
     title = opportunity.title
     opportunity.delete()
     messages.success(request, f"Opportunity '{title}' deleted successfully!")
@@ -378,15 +456,19 @@ def activity_list(request):
         return redirect("login")
 
     if request.method == "POST":
-        form = ActivityForm(request.POST)
+        form = ActivityForm(request.POST, user=current_user)
         if form.is_valid():
-            form.save()
+            activity = form.save(commit=False)
+            if not current_user.is_admin:
+                activity.assign_to = current_user
+                activity.created_by = current_user
+            activity.save()
             messages.success(request, "Activity created successfully!")
             return redirect("activity_list")
     else:
-        form = ActivityForm()
+        form = ActivityForm(user=current_user)
 
-    activities = Activity.objects.all()
+    activities = _visible_activities(current_user)
     context = {
         "activities": activities,
         "form": form,
@@ -401,14 +483,17 @@ def activity_update(request, pk):
         return redirect("login")
 
     activity = get_object_or_404(Activity, pk=pk)
+    if not _can_access(current_user, activity):
+        return _deny(request, "activity_list")
+
     if request.method == "POST":
-        form = ActivityForm(request.POST, instance=activity)
+        form = ActivityForm(request.POST, instance=activity, user=current_user)
         if form.is_valid():
             form.save()
             messages.success(request, "Activity updated successfully!")
             return redirect("activity_list")
     else:
-        form = ActivityForm(instance=activity)
+        form = ActivityForm(instance=activity, user=current_user)
 
     context = {
         "form": form,
@@ -426,6 +511,9 @@ def activity_delete(request, pk):
         return redirect("login")
 
     activity = get_object_or_404(Activity, pk=pk)
+    if not _can_access(current_user, activity):
+        return _deny(request, "activity_list")
+
     subject = activity.subject
     activity.delete()
     messages.success(request, f"Activity '{subject}' deleted successfully!")
@@ -440,15 +528,19 @@ def task_list(request):
         return redirect("login")
 
     if request.method == "POST":
-        form = TaskForm(request.POST)
+        form = TaskForm(request.POST, user=current_user)
         if form.is_valid():
-            form.save()
+            task = form.save(commit=False)
+            if not current_user.is_admin:
+                task.assign_to = current_user
+                task.created_by = current_user
+            task.save()
             messages.success(request, "Task created successfully!")
             return redirect("task_list")
     else:
-        form = TaskForm()
+        form = TaskForm(user=current_user)
 
-    tasks = Task.objects.all()
+    tasks = _visible_tasks(current_user)
     context = {
         "tasks": tasks,
         "form": form,
@@ -463,14 +555,17 @@ def task_update(request, pk):
         return redirect("login")
 
     task = get_object_or_404(Task, pk=pk)
+    if not _can_access(current_user, task):
+        return _deny(request, "task_list")
+
     if request.method == "POST":
-        form = TaskForm(request.POST, instance=task)
+        form = TaskForm(request.POST, instance=task, user=current_user)
         if form.is_valid():
             form.save()
             messages.success(request, "Task updated successfully!")
             return redirect("task_list")
     else:
-        form = TaskForm(instance=task)
+        form = TaskForm(instance=task, user=current_user)
 
     context = {
         "form": form,
@@ -488,6 +583,9 @@ def task_delete(request, pk):
         return redirect("login")
 
     task = get_object_or_404(Task, pk=pk)
+    if not _can_access(current_user, task):
+        return _deny(request, "task_list")
+
     title = task.title
     task.delete()
     messages.success(request, f"Task '{title}' deleted successfully!")
@@ -502,7 +600,7 @@ def email_compose(request):
         return redirect("login")
 
     if request.method == "POST":
-        form = EmailForm(request.POST)
+        form = EmailForm(request.POST, user=current_user)
         if form.is_valid():
             customer = form.cleaned_data["customer"]
             subject = form.cleaned_data["subject"]
@@ -532,7 +630,7 @@ def email_compose(request):
             except Exception as e:
                 messages.error(request, f"Failed to send email: {e}")
     else:
-        form = EmailForm()
+        form = EmailForm(user=current_user)
 
     context = {
         "form": form,
@@ -547,7 +645,7 @@ def email_bulk(request):
         return redirect("login")
 
     if request.method == "POST":
-        form = BulkEmailForm(request.POST)
+        form = BulkEmailForm(request.POST, user=current_user)
         if form.is_valid():
             recipients = list(form.cleaned_data["recipients"])
             include_leads = form.cleaned_data.get("include_leads", False)
@@ -559,7 +657,7 @@ def email_bulk(request):
                 if c.email:
                     recipient_emails.add(c.email)
             if include_leads:
-                for l in Lead.objects.all():
+                for l in _visible_leads(current_user):
                     if l.email:
                         recipient_emails.add(l.email)
 
@@ -596,7 +694,7 @@ def email_bulk(request):
             except Exception as e:
                 messages.error(request, f"Failed to send bulk email: {e}")
     else:
-        form = BulkEmailForm()
+        form = BulkEmailForm(user=current_user)
 
     context = {
         "form": form,
@@ -611,8 +709,64 @@ def email_log(request):
         return redirect("login")
 
     logs = EmailLog.objects.all().order_by("-sent_at")
+    if not current_user.is_admin:
+        logs = logs.filter(sent_by=current_user)
     context = {
         "logs": logs,
         "current_user": current_user,
     }
     return render(request, "user/email_log.html", context)
+
+
+# ===================== USER MANAGEMENT (ADMIN ONLY) =====================
+
+def user_list(request):
+    current_user = _require_login(request)
+    if not current_user:
+        return redirect("login")
+    if not current_user.is_admin:
+        messages.error(request, "Only admins can access user management.")
+        return redirect("user_home")
+
+    users = User.objects.all().order_by("id")
+    context = {
+        "users": users,
+        "current_user": current_user,
+    }
+    return render(request, "user/user_list.html", context)
+
+
+def user_toggle_admin(request, pk):
+    current_user = _require_login(request)
+    if not current_user:
+        return redirect("login")
+    if not current_user.is_admin:
+        return _deny(request, "user_list")
+
+    target = get_object_or_404(User, pk=pk)
+    if target.id == current_user.id:
+        messages.error(request, "You cannot change your own admin status.")
+    else:
+        target.is_admin = not target.is_admin
+        target.save()
+        verb = "promoted to admin" if target.is_admin else "demoted to regular user"
+        messages.success(request, f"'{target.user_name}' was {verb}.")
+    return redirect("user_list")
+
+
+def user_toggle_active(request, pk):
+    current_user = _require_login(request)
+    if not current_user:
+        return redirect("login")
+    if not current_user.is_admin:
+        return _deny(request, "user_list")
+
+    target = get_object_or_404(User, pk=pk)
+    if target.id == current_user.id:
+        messages.error(request, "You cannot deactivate your own account.")
+    else:
+        target.is_active = not target.is_active
+        target.save()
+        verb = "activated" if target.is_active else "deactivated"
+        messages.success(request, f"'{target.user_name}' was {verb}.")
+    return redirect("user_list")

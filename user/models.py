@@ -9,6 +9,7 @@ class User(models.Model):
     password = models.CharField(max_length=256)
     email = models.EmailField(unique=True)
     is_active = models.BooleanField(default=True)
+    is_admin = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -51,6 +52,9 @@ class Customer(models.Model):
         max_length=20, choices=Status_Choices, default="Active"
     )
     notes = models.TextField(blank=True, null=True)
+    assign_to = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name="assigned_customers"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -113,6 +117,9 @@ class Opportunity(models.Model):
     probability = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
     expected_close_date = models.DateField()
     notes = models.TextField(blank=True, null=True)
+    assign_to = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name="assigned_opportunities"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -137,6 +144,9 @@ class Activity(models.Model):
     activity_date = models.DateTimeField()
     created_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    assign_to = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name="assigned_activities"
     )
     ctreated_at = models.DateTimeField(auto_now_add=True)
 
@@ -168,6 +178,9 @@ class Task(models.Model):
     description = models.TextField(blank=True, null=True)
     created_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    assign_to = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name="assigned_tasks"
     )
     created_at = models.DateTimeField(auto_now_add=True)
 

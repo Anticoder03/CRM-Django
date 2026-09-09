@@ -32,6 +32,15 @@ class EmailForm(forms.Form):
         ),
     )
 
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if user is not None:
+            if user.is_admin:
+                customers = Customer.objects.all()
+            else:
+                customers = Customer.objects.filter(assign_to=user)
+            self.fields["customer"].queryset = customers
+
 
 class BulkEmailForm(forms.Form):
     recipients = forms.ModelMultipleChoiceField(
@@ -69,13 +78,48 @@ class BulkEmailForm(forms.Form):
         ),
     )
 
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if user is not None:
+            if user.is_admin:
+                customers = Customer.objects.all()
+            else:
+                customers = Customer.objects.filter(assign_to=user)
+            self.fields["recipients"].queryset = customers
 
-class CustomerForm(forms.ModelForm):
+
+def _users_for_assignment():
+    return User.objects.filter(is_active=True)
+
+
+def _visible_customer_qs(user):
+    if user is not None and not user.is_admin:
+        return Customer.objects.filter(assign_to=user)
+    return Customer.objects.all()
+
+
+def _visible_lead_qs(user):
+    if user is not None and not user.is_admin:
+        return Lead.objects.filter(assign_to=user)
+    return Lead.objects.all()
+
+
+class AssignableFormMixin:
+    def _apply_assignment(self, user):
+        if "assign_to" not in self.fields:
+            return
+        if user is not None and not user.is_admin:
+            self.fields.pop("assign_to")
+        else:
+            self.fields["assign_to"].queryset = _users_for_assignment()
+
+
+class CustomerForm(AssignableFormMixin, forms.ModelForm):
     class Meta:
         model = Customer
         fields = [
             "customer_name", "company", "email", "phone",
-            "address", "city", "status", "notes",
+            "address", "city", "status", "notes", "assign_to",
         ]
         labels = {
             "customer_name": "Customer Name",
@@ -86,6 +130,7 @@ class CustomerForm(forms.ModelForm):
             "city": "City",
             "status": "Status",
             "notes": "Notes",
+            "assign_to": "Assign To",
         }
         widgets = {
             "customer_name": forms.TextInput(attrs={"class": TW_INPUT, "placeholder": "Enter customer name"}),
@@ -96,10 +141,15 @@ class CustomerForm(forms.ModelForm):
             "city": forms.TextInput(attrs={"class": TW_INPUT, "placeholder": "Enter city"}),
             "status": forms.Select(attrs={"class": TW_SELECT}),
             "notes": forms.Textarea(attrs={"class": TW_TEXTAREA, "placeholder": "Add notes", "rows": 3}),
+            "assign_to": forms.Select(attrs={"class": TW_SELECT}),
         }
 
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._apply_assignment(user)
 
-class LeadForm(forms.ModelForm):
+
+class LeadForm(AssignableFormMixin, forms.ModelForm):
     class Meta:
         model = Lead
         fields = ["name", "company", "email", "phone", "source", "status", "assign_to", "notes"]
@@ -124,13 +174,17 @@ class LeadForm(forms.ModelForm):
             "notes": forms.Textarea(attrs={"class": TW_TEXTAREA, "placeholder": "Add notes", "rows": 3}),
         }
 
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._apply_assignment(user)
 
-class OpportunityForm(forms.ModelForm):
+
+class OpportunityForm(AssignableFormMixin, forms.ModelForm):
     class Meta:
         model = Opportunity
         fields = [
             "title", "customer", "amount", "stage",
-            "probability", "expected_close_date", "notes",
+            "probability", "expected_close_date", "notes", "assign_to",
         ]
         labels = {
             "title": "Opportunity Title",
@@ -140,6 +194,7 @@ class OpportunityForm(forms.ModelForm):
             "probability": "Probability (%)",
             "expected_close_date": "Expected Close Date",
             "notes": "Notes",
+            "assign_to": "Assign To",
         }
         widgets = {
             "title": forms.TextInput(attrs={"class": TW_INPUT, "placeholder": "Enter opportunity title"}),
@@ -149,13 +204,19 @@ class OpportunityForm(forms.ModelForm):
             "probability": forms.NumberInput(attrs={"class": TW_INPUT, "placeholder": "0-100", "min": "0", "max": "100"}),
             "expected_close_date": forms.DateInput(attrs={"class": TW_INPUT, "type": "date"}),
             "notes": forms.Textarea(attrs={"class": TW_TEXTAREA, "placeholder": "Add notes", "rows": 3}),
+            "assign_to": forms.Select(attrs={"class": TW_SELECT}),
         }
 
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["customer"].queryset = _visible_customer_qs(user)
+        self._apply_assignment(user)
 
-class ActivityForm(forms.ModelForm):
+
+class ActivityForm(AssignableFormMixin, forms.ModelForm):
     class Meta:
         model = Activity
-        fields = ["customer", "lead", "type", "subject", "description", "activity_date", "created_by"]
+        fields = ["customer", "lead", "type", "subject", "description", "activity_date", "created_by", "assign_to"]
         labels = {
             "customer": "Customer",
             "lead": "Lead",
@@ -164,6 +225,7 @@ class ActivityForm(forms.ModelForm):
             "description": "Description",
             "activity_date": "Activity Date & Time",
             "created_by": "Created By",
+            "assign_to": "Assign To",
         }
         widgets = {
             "customer": forms.Select(attrs={"class": TW_SELECT}),
@@ -173,13 +235,23 @@ class ActivityForm(forms.ModelForm):
             "description": forms.Textarea(attrs={"class": TW_TEXTAREA, "placeholder": "Enter description", "rows": 3}),
             "activity_date": forms.DateTimeInput(attrs={"class": TW_INPUT, "type": "datetime-local"}),
             "created_by": forms.Select(attrs={"class": TW_SELECT}),
+            "assign_to": forms.Select(attrs={"class": TW_SELECT}),
         }
 
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if user is not None and not user.is_admin:
+            if "created_by" in self.fields:
+                self.fields.pop("created_by")
+            self.fields["customer"].queryset = _visible_customer_qs(user)
+            self.fields["lead"].queryset = _visible_lead_qs(user)
+        self._apply_assignment(user)
 
-class TaskForm(forms.ModelForm):
+
+class TaskForm(AssignableFormMixin, forms.ModelForm):
     class Meta:
         model = Task
-        fields = ["title", "customer", "lead", "due_date", "priority", "status", "description", "created_by"]
+        fields = ["title", "customer", "lead", "due_date", "priority", "status", "description", "created_by", "assign_to"]
         labels = {
             "title": "Task Title",
             "customer": "Customer",
@@ -189,6 +261,7 @@ class TaskForm(forms.ModelForm):
             "status": "Status",
             "description": "Description",
             "created_by": "Created By",
+            "assign_to": "Assign To",
         }
         widgets = {
             "title": forms.TextInput(attrs={"class": TW_INPUT, "placeholder": "Enter task title"}),
@@ -199,4 +272,14 @@ class TaskForm(forms.ModelForm):
             "status": forms.Select(attrs={"class": TW_SELECT}),
             "description": forms.Textarea(attrs={"class": TW_TEXTAREA, "placeholder": "Enter description", "rows": 3}),
             "created_by": forms.Select(attrs={"class": TW_SELECT}),
+            "assign_to": forms.Select(attrs={"class": TW_SELECT}),
         }
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if user is not None and not user.is_admin:
+            if "created_by" in self.fields:
+                self.fields.pop("created_by")
+            self.fields["customer"].queryset = _visible_customer_qs(user)
+            self.fields["lead"].queryset = _visible_lead_qs(user)
+        self._apply_assignment(user)

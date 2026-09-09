@@ -61,10 +61,13 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">{{ form.status.label }}</label>
                     {{ form.status }}
                 </div>
+                {% if form.assign_to %}
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">{{ form.assign_to.label }}</label>
                     {{ form.assign_to }}
+                    {% if form.assign_to.errors %}<p class="text-xs text-red-500 mt-1">{{ form.assign_to.errors|striptags }}</p>{% endif %}
                 </div>
+                {% endif %}
             </div>
             <div class="mt-4">
                 <label class="block text-sm font-medium text-gray-700 mb-1">{{ form.notes.label }}</label>

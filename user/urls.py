@@ -36,4 +36,9 @@ urlpatterns = [
     path("email/compose/", views.email_compose, name="email_compose"),
     path("email/bulk/", views.email_bulk, name="email_bulk"),
     path("email/log/", views.email_log, name="email_log"),
+
+    # User Management (admin)
+    path("users/", views.user_list, name="user_list"),
+    path("users/<int:pk>/toggle-admin/", views.user_toggle_admin, name="user_toggle_admin"),
+    path("users/<int:pk>/toggle-active/", views.user_toggle_active, name="user_toggle_active"),
 ]

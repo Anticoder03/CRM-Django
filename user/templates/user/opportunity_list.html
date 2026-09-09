@@ -14,9 +14,24 @@
             <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
         </div>
     </div>
-    <div id="add-form" class="hidden">
+    <div id="add-form" class="{% if form.errors %}{% else %}hidden{% endif %}">
         <form method="POST" class="p-6">
             {% csrf_token %}
+            {% if form.errors %}
+            <div class="mb-4 p-4 rounded-lg bg-red-50 border border-red-200">
+                <p class="text-sm font-semibold text-red-800 mb-1">Please fix the following errors:</p>
+                <ul class="text-sm text-red-700 list-disc list-inside">
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                            <li><strong>{{ field.label }}</strong>: {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">{{ form.title.label }}</label>
@@ -42,6 +57,12 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">{{ form.expected_close_date.label }}</label>
                     {{ form.expected_close_date }}
                 </div>
+                {% if form.assign_to %}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">{{ form.assign_to.label }}</label>
+                    {{ form.assign_to }}
+                </div>
+                {% endif %}
             </div>
             <div class="mt-4">
                 <label class="block text-sm font-medium text-gray-700 mb-1">{{ form.notes.label }}</label>
@@ -71,6 +92,7 @@
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Stage</th>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Probability</th>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Close Date</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Assigned To</th>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Created</th>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
@@ -94,6 +116,7 @@
                     </td>
                     <td class="px-6 py-4 text-sm text-gray-600">{{ opportunity.probability }}%</td>
                     <td class="px-6 py-4 text-sm text-gray-600">{{ opportunity.expected_close_date|date:"M d, Y" }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">{{ opportunity.assign_to.user_name|default:"Unassigned" }}</td>
                     <td class="px-6 py-4 text-sm text-gray-500">{{ opportunity.created_at|date:"M d, Y" }}</td>
                     <td class="px-6 py-4">
                         <div class="flex items-center gap-2">
@@ -111,7 +134,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="8" class="px-6 py-12 text-center text-sm text-gray-500">No opportunities found. Add your first opportunity above.</td>
+                    <td colspan="9" class="px-6 py-12 text-center text-sm text-gray-500">No opportunities found. Add your first opportunity above.</td>
                 </tr>
                 {% endfor %}
             </tbody>
